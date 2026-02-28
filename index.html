@@ -2,45 +2,68 @@
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- A-Frame versão estável -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <!-- MindAR -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 </head>
 
 <body>
   <a-scene
-    mindar-image="imageTargetSrc: targets.mind;"
-    color-space="sRGB"
-    renderer="colorManagement: true, physicallyCorrectLights"
     vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
+    renderer="colorManagement: true;"
+    embedded
+    webxr="requiredFeatures: hit-test, local-floor;"
   >
 
-    <!-- Assets -->
     <a-assets>
       <a-asset-item id="modelo" src="escritorio.glb"></a-asset-item>
     </a-assets>
 
-    <!-- Camera -->
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- câmera AR -->
+    <a-camera></a-camera>
 
-    <!-- Target -->
-    <a-entity mindar-image-target="targetIndex: 0">
-
-  <a-box 
-    color="red" 
-    depth="0.3" 
-    height="0.3" 
-    width="0.3" 
-    position="0 0 0">
-  </a-box>
-
-</a-entity>
+    <!-- modelo (começa invisível) -->
+    <a-entity
+      id="sala"
+      gltf-model="#modelo"
+      visible="false"
+      scale="1 1 1">
+    </a-entity>
 
   </a-scene>
+
+  <script>
+    const scene = document.querySelector("a-scene");
+    const sala = document.querySelector("#sala");
+
+    scene.addEventListener("enter-vr", async () => {
+      if (!scene.is("ar-mode")) return;
+
+      const xrSession = scene.renderer.xr.getSession();
+      const viewerSpace = await xrSession.requestReferenceSpace("viewer");
+      const referenceSpace = await xrSession.requestReferenceSpace("local-floor");
+      const hitTestSource = await xrSession.requestHitTestSource({ space: viewerSpace });
+
+      scene.renderer.xr.addEventListener("frame", (event) => {
+        const frame = event.frame;
+        const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+        if (hitTestResults.length > 0) {
+          const hit = hitTestResults[0];
+          const pose = hit.getPose(referenceSpace);
+
+          // Quando tocar na tela, posiciona
+          window.addEventListener("click", () => {
+            sala.setAttribute("position", {
+              x: pose.transform.position.x,
+              y: pose.transform.position.y,
+              z: pose.transform.position.z
+            });
+
+            sala.setAttribute("visible", true);
+          }, { once: true });
+        }
+      });
+    });
+  </script>
+
 </body>
 </html>
-
