@@ -6,10 +6,10 @@
 </head>
 
 <body>
+
   <a-scene
     vr-mode-ui="enabled: false"
     renderer="colorManagement: true;"
-    embedded
     webxr="requiredFeatures: hit-test, local-floor;"
   >
 
@@ -17,10 +17,13 @@
       <a-asset-item id="modelo" src="escritorio.glb"></a-asset-item>
     </a-assets>
 
-    <!-- câmera AR -->
     <a-camera></a-camera>
 
-    <!-- modelo (começa invisível) -->
+    <!-- Luz (importante) -->
+    <a-light type="ambient" intensity="1.5"></a-light>
+    <a-light type="directional" position="0 1 1"></a-light>
+
+    <!-- Modelo invisível -->
     <a-entity
       id="sala"
       gltf-model="#modelo"
@@ -33,6 +36,10 @@
   <script>
     const scene = document.querySelector("a-scene");
     const sala = document.querySelector("#sala");
+
+    scene.addEventListener("loaded", () => {
+      scene.enterVR(); // força aparecer botão AR
+    });
 
     scene.addEventListener("enter-vr", async () => {
       if (!scene.is("ar-mode")) return;
@@ -50,7 +57,6 @@
           const hit = hitTestResults[0];
           const pose = hit.getPose(referenceSpace);
 
-          // Quando tocar na tela, posiciona
           window.addEventListener("click", () => {
             sala.setAttribute("position", {
               x: pose.transform.position.x,
